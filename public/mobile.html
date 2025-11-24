@@ -27,6 +27,7 @@
         .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
         .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .btn-secondary { background: #f3f4f6; color: #374151; margin-top: 15px; }
         .btn-secondary:hover { background: #e5e7eb; }
         .login-screen, .otp-screen { padding-top: 80px; }
@@ -100,6 +101,14 @@
         .divider { text-align: center; margin: 30px 0; position: relative; }
         .divider::before { content: ''; position: absolute; left: 0; top: 50%; width: 100%; height: 1px; background: #e5e7eb; }
         .divider span { background: white; padding: 0 15px; position: relative; color: #9ca3af; }
+        .error-message { background: #fee2e2; color: #dc2626; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
+        .error-message.show { display: block; }
+        .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .demo-login { background: #f0f9ff; border: 2px solid #38bdf8; border-radius: 12px; padding: 15px; margin-top: 20px; }
+        .demo-login h4 { color: #0c4a6e; margin-bottom: 10px; font-size: 0.9em; }
+        .demo-login p { color: #075985; font-size: 0.85em; margin: 5px 0; }
+        .demo-login code { background: white; padding: 2px 6px; border-radius: 4px; color: #0369a1; font-family: monospace; }
     </style>
 </head>
 <body>
@@ -127,7 +136,7 @@
                     <div class="icon">🔒</div>
                     <div>
                         <h3>Secure Access</h3>
-                        <p>Biometric & OTP authentication</p>
+                        <p>Secure authentication</p>
                     </div>
                 </div>
             </div>
@@ -137,40 +146,31 @@
         <div id="loginScreen" class="screen login-screen">
             <div class="login-header">
                 <div class="icon">📱</div>
-                <h2>Welcome Back</h2>
-                <p>Enter your phone number to continue</p>
+                <h2>Welcome to Kiaan</h2>
+                <p>Enter your credentials to continue</p>
             </div>
-            <form onsubmit="sendOTP(event)">
-                <div class="form-group">
-                    <label>Phone Number</label>
-                    <input type="tel" id="phoneNumber" placeholder="+256 700 000 000" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Send OTP</button>
-            </form>
-            <div class="divider"><span>OR</span></div>
-            <button class="btn btn-secondary" onclick="showBiometric()">🔐 Login with Biometric</button>
-            <button class="btn btn-secondary" onclick="showScreen('welcomeScreen')" style="margin-top: 30px;">← Back</button>
-        </div>
 
-        <div id="otpScreen" class="screen otp-screen">
-            <div class="login-header">
-                <div class="icon">🔐</div>
-                <h2>Enter OTP</h2>
-                <p>We sent a code to <span id="otpPhoneDisplay"></span></p>
-            </div>
-            <form onsubmit="verifyOTP(event)">
-                <div class="otp-inputs">
-                    <input type="text" class="otp-input" maxlength="1" id="otp1" oninput="moveToNext(this, 'otp2')">
-                    <input type="text" class="otp-input" maxlength="1" id="otp2" oninput="moveToNext(this, 'otp3')">
-                    <input type="text" class="otp-input" maxlength="1" id="otp3" oninput="moveToNext(this, 'otp4')">
-                    <input type="text" class="otp-input" maxlength="1" id="otp4" oninput="moveToNext(this, 'otp5')">
-                    <input type="text" class="otp-input" maxlength="1" id="otp5" oninput="moveToNext(this, 'otp6')">
-                    <input type="text" class="otp-input" maxlength="1" id="otp6">
+            <div id="loginError" class="error-message"></div>
+
+            <form onsubmit="login(event)">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email" required>
                 </div>
-                <div class="resend-timer">Didn't receive code? <span class="resend-link" onclick="resendOTP()">Resend OTP</span></div>
-                <button type="submit" class="btn btn-primary">Verify & Continue</button>
-                <button type="button" class="btn btn-secondary" onclick="showScreen('loginScreen')">← Change Number</button>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="loginBtn">Sign In</button>
             </form>
+
+            <div class="demo-login">
+                <h4>🔐 Demo Credentials</h4>
+                <p>Email: <code>testadmin@kiaan.com</code></p>
+                <p>Password: <code>Test123!</code></p>
+            </div>
+
+            <button class="btn btn-secondary" onclick="showScreen('welcomeScreen')">← Back</button>
         </div>
 
         <div id="dashboardScreen" class="screen">
@@ -181,7 +181,7 @@
                 </div>
                 <div class="balance-card">
                     <div class="balance-label">Available Balance</div>
-                    <div class="balance-amount" id="userBalance">UGX 0</div>
+                    <div class="balance-amount" id="userBalance">Loading...</div>
                     <div class="balance-actions">
                         <button onclick="showScreen('nfcScanScreen')">📱 Tap Card</button>
                         <button onclick="loadTransactionHistory()">📊 History</button>
@@ -203,7 +203,9 @@
                 </div>
             </div>
             <div class="section-title">Recent Transactions</div>
-            <div class="transaction-list" id="transactionList"></div>
+            <div class="transaction-list" id="transactionList">
+                <div style="padding: 40px; text-align: center; color: #9ca3af;">Loading transactions...</div>
+            </div>
         </div>
 
         <div id="nfcScanScreen" class="screen nfc-scan-screen">
@@ -219,25 +221,25 @@
                 <p>Place your NFC card near the back of your phone</p>
             </div>
             <div style="text-align: center; margin-top: 30px;">
-                <p style="color: #6b7280; margin-bottom: 20px;">Or enter card number manually</p>
+                <p style="color: #6b7280; margin-bottom: 20px;">Or enter card UID manually</p>
                 <input type="text" id="manualCardUid" placeholder="Enter card UID" style="width: 100%; padding: 15px; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center;">
                 <button class="btn btn-primary" style="margin-top: 15px;" onclick="checkCardBalance()">Check Balance</button>
             </div>
-            <button class="btn btn-secondary" onclick="showScreen('dashboardScreen')" style="margin-top: 30px;">← Back to Dashboard</button>
+            <button class="btn btn-secondary" onclick="navigateToDashboard()" style="margin-top: 30px;">← Back to Dashboard</button>
         </div>
 
         <div id="profileScreen" class="screen">
             <div class="profile-header">
                 <div class="profile-avatar">👤</div>
-                <div class="profile-name" id="profileName">User Name</div>
-                <div class="profile-phone" id="profilePhone">+256 700 000 000</div>
+                <div class="profile-name" id="profileName">Loading...</div>
+                <div class="profile-phone" id="profileEmail">Loading...</div>
             </div>
             <div class="profile-menu">
                 <div class="menu-item">
                     <div class="icon" style="background: #dbeafe; color: #2563eb;">👤</div>
                     <div class="text">
-                        <div class="title">Edit Profile</div>
-                        <div class="subtitle">Update your personal information</div>
+                        <div class="title">Account Info</div>
+                        <div class="subtitle">View your account details</div>
                     </div>
                     <div class="arrow">›</div>
                 </div>
@@ -253,7 +255,7 @@
                     <div class="icon" style="background: #ddd6fe; color: #7c3aed;">🔒</div>
                     <div class="text">
                         <div class="title">Security</div>
-                        <div class="subtitle">Biometric & PIN settings</div>
+                        <div class="subtitle">Security settings</div>
                     </div>
                     <div class="arrow">›</div>
                 </div>
@@ -289,8 +291,253 @@
     </div>
 
     <script>
-        const API_URL = 'https://kiaan.alexandratechlab.com/api';
+        const API_URL = 'https://kiaan-pos-wallet-system-production.up.railway.app/api';
         let currentUser = null;
+        let currentCard = null;
+
+        // Check if user is logged in
+        function checkAuth() {
+            const token = localStorage.getItem('kiaan_auth_token') || sessionStorage.getItem('kiaan_auth_token');
+            return token;
+        }
+
+        // Get authentication token
+        function getAuthToken() {
+            return localStorage.getItem('kiaan_auth_token') || sessionStorage.getItem('kiaan_auth_token');
+        }
+
+        // Authenticated fetch wrapper
+        async function authenticatedFetch(url, options = {}) {
+            const token = getAuthToken();
+
+            if (!token) {
+                return null;
+            }
+
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+                'Authorization': `Bearer ${token}`
+            };
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers
+                });
+
+                if (response.status === 401) {
+                    // Token expired or invalid
+                    localStorage.removeItem('kiaan_auth_token');
+                    sessionStorage.removeItem('kiaan_auth_token');
+                    showScreen('loginScreen');
+                    return null;
+                }
+
+                return response;
+            } catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Login function
+        async function login(event) {
+            event.preventDefault();
+
+            const loginBtn = document.getElementById('loginBtn');
+            const originalText = loginBtn.textContent;
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<div class="loading"></div>';
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Login failed');
+                }
+
+                // Get token from response
+                const token = data.data?.token || data.token;
+
+                if (!token) {
+                    throw new Error('No authentication token received');
+                }
+
+                // Store token
+                localStorage.setItem('kiaan_auth_token', token);
+
+                // Load user data and go to dashboard
+                await loadUserData();
+                showScreen('dashboardScreen');
+                loadRecentTransactions();
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showError(error.message || 'Login failed. Please check your credentials.');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = originalText;
+            }
+        }
+
+        // Load user data
+        async function loadUserData() {
+            try {
+                const response = await authenticatedFetch(`${API_URL}/auth/me`);
+
+                if (!response) return;
+
+                const data = await response.json();
+
+                if (data.data && data.data.user) {
+                    currentUser = data.data.user;
+                    document.getElementById('userName').textContent = currentUser.name || 'User';
+                    document.getElementById('profileName').textContent = currentUser.name || 'User';
+                    document.getElementById('profileEmail').textContent = currentUser.email || '';
+
+                    // Try to load balance if user has a card
+                    await loadUserBalance();
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
+        // Load user balance
+        async function loadUserBalance() {
+            try {
+                // Try to get user's first card
+                const response = await authenticatedFetch(`${API_URL}/cards`);
+
+                if (!response) return;
+
+                const data = await response.json();
+
+                if (data.data && data.data.length > 0) {
+                    currentCard = data.data[0];
+                    document.getElementById('userBalance').textContent = `UGX ${(currentCard.balance || 0).toLocaleString()}`;
+                } else {
+                    document.getElementById('userBalance').textContent = 'No card linked';
+                }
+            } catch (error) {
+                console.error('Error loading balance:', error);
+                document.getElementById('userBalance').textContent = 'UGX 0';
+            }
+        }
+
+        // Check card balance
+        async function checkCardBalance() {
+            const cardUid = document.getElementById('manualCardUid').value.trim();
+
+            if (!cardUid) {
+                alert('Please enter a card UID');
+                return;
+            }
+
+            try {
+                const response = await authenticatedFetch(`${API_URL}/cards/${encodeURIComponent(cardUid)}`);
+
+                if (!response) {
+                    alert('Please login first');
+                    showScreen('loginScreen');
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.data) {
+                    currentCard = data.data;
+                    document.getElementById('userBalance').textContent = `UGX ${(currentCard.balance || 0).toLocaleString()}`;
+                    alert(`Card Balance: UGX ${(currentCard.balance || 0).toLocaleString()}\nCustomer: ${currentCard.customer?.name || 'Unknown'}`);
+                    navigateToDashboard();
+                } else {
+                    alert('Card not found');
+                }
+            } catch (error) {
+                console.error('Error checking card balance:', error);
+                alert('Error checking card balance');
+            }
+        }
+
+        // Load recent transactions
+        async function loadRecentTransactions() {
+            const transactionList = document.getElementById('transactionList');
+            transactionList.innerHTML = '<div style="padding: 40px; text-align: center; color: #9ca3af;">Loading transactions...</div>';
+
+            try {
+                const response = await authenticatedFetch(`${API_URL}/transactions`);
+
+                if (!response) return;
+
+                const data = await response.json();
+
+                if (data.data && data.data.length > 0) {
+                    const transactions = data.data.slice(0, 10); // Show last 10 transactions
+
+                    transactionList.innerHTML = transactions.map(tx => {
+                        const isCredit = tx.transaction_type === 'topup';
+                        const icon = isCredit ? '💰' : '🛒';
+                        const typeClass = isCredit ? 'topup' : 'purchase';
+                        const amountClass = isCredit ? 'credit' : 'debit';
+                        const sign = isCredit ? '+' : '-';
+                        const title = isCredit ? 'Top-up' : 'Purchase';
+                        const date = new Date(tx.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+
+                        return `
+                            <div class="transaction-item">
+                                <div class="transaction-icon ${typeClass}">${icon}</div>
+                                <div class="transaction-info">
+                                    <div class="transaction-title">${title} - ${tx.payment_method || 'N/A'}</div>
+                                    <div class="transaction-date">${date}</div>
+                                </div>
+                                <div class="transaction-amount ${amountClass}">
+                                    ${sign}UGX ${(tx.amount || 0).toLocaleString()}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    transactionList.innerHTML = '<div style="padding: 40px; text-align: center; color: #9ca3af;">No transactions yet</div>';
+                }
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                transactionList.innerHTML = '<div style="padding: 40px; text-align: center; color: #dc2626;">Error loading transactions</div>';
+            }
+        }
+
+        function loadTransactionHistory() {
+            loadRecentTransactions();
+            showScreen('dashboardScreen');
+        }
 
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
@@ -302,108 +549,38 @@
         function navigateTo(screenId, navItem) {
             showScreen(screenId);
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            navItem.classList.add('active');
+            if (navItem) navItem.classList.add('active');
         }
 
-        async function sendOTP(event) {
-            event.preventDefault();
-            const phoneNumber = document.getElementById('phoneNumber').value;
-            document.getElementById('otpPhoneDisplay').textContent = phoneNumber;
-            showScreen('otpScreen');
-            document.getElementById('otp1').focus();
-            console.log('OTP sent to:', phoneNumber);
-        }
-
-        function moveToNext(current, nextId) {
-            if (current.value.length === 1 && nextId) {
-                document.getElementById(nextId).focus();
-            }
-        }
-
-        async function verifyOTP(event) {
-            event.preventDefault();
-            const otp = ['otp1', 'otp2', 'otp3', 'otp4', 'otp5', 'otp6'].map(id => document.getElementById(id).value).join('');
-            if (otp.length === 6) {
-                currentUser = { name: 'John Doe', phone: document.getElementById('phoneNumber').value, balance: 125000, cardUid: '04:A1:B2:C3:D4:E5:F6' };
-                updateUserData();
-                showScreen('dashboardScreen');
-                loadRecentTransactions();
-            } else {
-                alert('Please enter a valid 6-digit OTP');
-            }
-        }
-
-        function resendOTP() {
-            alert(`OTP resent to ${document.getElementById('phoneNumber').value}`);
-        }
-
-        async function showBiometric() {
-            if (confirm('Touch sensor to authenticate')) {
-                currentUser = { name: 'John Doe', phone: '+256 700 000 000', balance: 125000, cardUid: '04:A1:B2:C3:D4:E5:F6' };
-                updateUserData();
-                showScreen('dashboardScreen');
-                loadRecentTransactions();
-            }
-        }
-
-        function updateUserData() {
-            if (currentUser) {
-                document.getElementById('userName').textContent = currentUser.name;
-                document.getElementById('userBalance').textContent = `UGX ${currentUser.balance.toLocaleString()}`;
-                document.getElementById('profileName').textContent = currentUser.name;
-                document.getElementById('profilePhone').textContent = currentUser.phone;
-            }
-        }
-
-        async function checkCardBalance() {
-            const cardUid = document.getElementById('manualCardUid').value;
-            if (!cardUid) {
-                alert('Please enter a card UID');
-                return;
-            }
-            const mockBalance = 85000;
-            currentUser.balance = mockBalance;
-            document.getElementById('userBalance').textContent = `UGX ${mockBalance.toLocaleString()}`;
-            alert(`Card Balance: UGX ${mockBalance.toLocaleString()}`);
+        function navigateToDashboard() {
             showScreen('dashboardScreen');
-        }
-
-        async function loadRecentTransactions() {
-            const transactionList = document.getElementById('transactionList');
-            const transactions = [
-                { id: 1, type: 'purchase', title: 'Cafeteria Purchase', date: '2 hours ago', amount: -5000, icon: '🛒' },
-                { id: 2, type: 'topup', title: 'Mobile Money Top-up', date: '1 day ago', amount: 50000, icon: '💰' },
-                { id: 3, type: 'purchase', title: 'Library Fee', date: '2 days ago', amount: -10000, icon: '📚' },
-                { id: 4, type: 'topup', title: 'Cash Top-up', date: '3 days ago', amount: 100000, icon: '💵' },
-                { id: 5, type: 'purchase', title: 'Transport Card', date: '4 days ago', amount: -15000, icon: '🚌' }
-            ];
-            transactionList.innerHTML = transactions.map(tx => `
-                <div class="transaction-item">
-                    <div class="transaction-icon ${tx.type}">${tx.icon}</div>
-                    <div class="transaction-info">
-                        <div class="transaction-title">${tx.title}</div>
-                        <div class="transaction-date">${tx.date}</div>
-                    </div>
-                    <div class="transaction-amount ${tx.amount > 0 ? 'credit' : 'debit'}">
-                        ${tx.amount > 0 ? '+' : ''}UGX ${Math.abs(tx.amount).toLocaleString()}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function loadTransactionHistory() {
-            loadRecentTransactions();
-            showScreen('dashboardScreen');
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelector('.nav-item').classList.add('active');
         }
 
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('kiaan_auth_token');
+                sessionStorage.removeItem('kiaan_auth_token');
                 currentUser = null;
+                currentCard = null;
                 showScreen('welcomeScreen');
             }
         }
 
-        window.addEventListener('load', () => console.log('Kiaan Mobile Wallet loaded'));
+        // Check authentication on page load
+        window.addEventListener('load', () => {
+            const token = checkAuth();
+            if (token) {
+                // User is logged in, load dashboard
+                loadUserData();
+                showScreen('dashboardScreen');
+                loadRecentTransactions();
+            } else {
+                // Show welcome screen
+                showScreen('welcomeScreen');
+            }
+        });
     </script>
 </body>
 </html>

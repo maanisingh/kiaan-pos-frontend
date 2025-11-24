@@ -161,6 +161,12 @@
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
 
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .btn-secondary {
             background: #f3f4f6;
             color: #374151;
@@ -362,6 +368,20 @@
         .logout-btn:hover {
             background: #fecaca;
         }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -374,10 +394,10 @@
             </div>
             <div class="terminal-info">
                 <div class="terminal-id">Terminal: POS-2024-001</div>
-                <div>Branch: Kampala Main</div>
-                <div>Cashier: John Doe</div>
+                <div>Branch: <span id="branchName">Loading...</span></div>
+                <div>Cashier: <span id="cashierName">Loading...</span></div>
                 <div style="margin-top: 10px;">
-                    <a href="/admin" class="logout-btn">🔙 Admin Dashboard</a>
+                    <a href="/dashboard" class="logout-btn">🔙 Admin Dashboard</a>
                 </div>
             </div>
         </div>
@@ -413,12 +433,12 @@
                     <div>
                         <div class="form-group">
                             <label>Card UID *</label>
-                            <input type="text" id="topupCardUid" required placeholder="Scan card or enter manually" value="04:A1:B2:C3:D4:E5:F6">
+                            <input type="text" id="topupCardUid" required placeholder="Scan card or enter manually">
                         </div>
 
                         <div class="form-group">
                             <label>Customer Name</label>
-                            <input type="text" id="topupCustomerName" readonly value="Loading...">
+                            <input type="text" id="topupCustomerName" readonly value="Enter card UID to load">
                         </div>
 
                         <div class="form-group">
@@ -437,9 +457,8 @@
                             <label>Payment Method *</label>
                             <select id="topupPaymentMethod" required>
                                 <option value="cash">Cash</option>
-                                <option value="mtn">MTN Mobile Money</option>
-                                <option value="airtel">Airtel Money</option>
-                                <option value="card">Bank Card</option>
+                                <option value="mobile_money">Mobile Money</option>
+                                <option value="bank_card">Bank Card</option>
                             </select>
                         </div>
 
@@ -466,7 +485,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-large" style="margin-top: 20px;">
+                <button type="submit" class="btn btn-primary btn-large" id="topupBtn" style="margin-top: 20px;">
                     ✅ Process Top-Up
                 </button>
             </form>
@@ -517,15 +536,14 @@
                             <select id="issuePaymentMethod">
                                 <option value="">No initial top-up</option>
                                 <option value="cash">Cash</option>
-                                <option value="mtn">MTN Mobile Money</option>
-                                <option value="airtel">Airtel Money</option>
-                                <option value="card">Bank Card</option>
+                                <option value="mobile_money">Mobile Money</option>
+                                <option value="bank_card">Bank Card</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-large" style="margin-top: 20px;">
+                <button type="submit" class="btn btn-primary btn-large" id="issueBtn" style="margin-top: 20px;">
                     ✅ Issue Card & Link Customer
                 </button>
             </form>
@@ -589,8 +607,89 @@
     <div id="notification" class="notification"></div>
 
     <script>
-        const API_URL = window.location.origin + '/api';
+        const API_URL = 'https://kiaan-pos-wallet-system-production.up.railway.app/api';
         let transactions = [];
+        let currentCard = null;
+
+        // Check authentication on page load
+        function checkAuth() {
+            const token = localStorage.getItem('kiaan_auth_token') || sessionStorage.getItem('kiaan_auth_token');
+            if (!token) {
+                window.location.href = '/login';
+                return false;
+            }
+            return token;
+        }
+
+        // Get authentication token
+        function getAuthToken() {
+            return localStorage.getItem('kiaan_auth_token') || sessionStorage.getItem('kiaan_auth_token');
+        }
+
+        // Authenticated fetch wrapper
+        async function authenticatedFetch(url, options = {}) {
+            const token = getAuthToken();
+
+            if (!token) {
+                window.location.href = '/login';
+                throw new Error('No authentication token');
+            }
+
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+                'Authorization': `Bearer ${token}`
+            };
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers
+                });
+
+                if (response.status === 401) {
+                    localStorage.removeItem('kiaan_auth_token');
+                    sessionStorage.removeItem('kiaan_auth_token');
+                    window.location.href = '/login';
+                    throw new Error('Unauthorized');
+                }
+
+                return response;
+            } catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        }
+
+        // Load user info
+        async function loadUserInfo() {
+            try {
+                const response = await authenticatedFetch(`${API_URL}/auth/me`);
+                const data = await response.json();
+
+                if (data.data && data.data.user) {
+                    document.getElementById('cashierName').textContent = data.data.user.name || 'Cashier';
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+                document.getElementById('cashierName').textContent = 'Cashier';
+            }
+        }
+
+        // Load branch info
+        async function loadBranchInfo() {
+            try {
+                const response = await authenticatedFetch(`${API_URL}/branches`);
+                const data = await response.json();
+
+                if (data.data && data.data.length > 0) {
+                    document.getElementById('branchName').textContent = data.data[0].name;
+                }
+            } catch (error) {
+                console.error('Error loading branch info:', error);
+                document.getElementById('branchName').textContent = 'Main Branch';
+            }
+        }
 
         // Tab switching
         function showTab(tabId) {
@@ -639,21 +738,22 @@
             if (!cardUid) return;
 
             try {
-                // const response = await fetch(`${API_URL}/cards/${cardUid}`);
-                // const card = await response.json();
+                const response = await authenticatedFetch(`${API_URL}/cards/${encodeURIComponent(cardUid)}`);
+                const data = await response.json();
 
-                // Mock data for demonstration
-                const card = {
-                    customer_name: 'Alice Johnson',
-                    balance: 45000
-                };
-
-                document.getElementById('topupCustomerName').value = card.customer_name;
-                document.getElementById('topupCurrentBalance').value = `UGX ${card.balance.toLocaleString()}`;
+                if (data.data) {
+                    currentCard = data.data;
+                    document.getElementById('topupCustomerName').value = currentCard.customer?.name || 'Unknown';
+                    document.getElementById('topupCurrentBalance').value = `UGX ${(currentCard.balance || 0).toLocaleString()}`;
+                } else {
+                    throw new Error('Card not found');
+                }
             } catch (error) {
                 console.error('Error fetching card:', error);
+                showNotification('Card not found or error loading card info', 'error');
                 document.getElementById('topupCustomerName').value = 'Card not found';
                 document.getElementById('topupCurrentBalance').value = 'UGX 0';
+                currentCard = null;
             }
         });
 
@@ -661,19 +761,31 @@
         async function processTopUp(event) {
             event.preventDefault();
 
+            const topupBtn = document.getElementById('topupBtn');
+            const originalText = topupBtn.innerHTML;
+
+            topupBtn.disabled = true;
+            topupBtn.innerHTML = '<div class="loading"></div>';
+
             const topUpData = {
-                card_uid: document.getElementById('topupCardUid').value,
+                card_uid: document.getElementById('topupCardUid').value.trim(),
                 amount: parseInt(document.getElementById('topupAmount').value),
                 payment_method: document.getElementById('topupPaymentMethod').value,
-                reference: document.getElementById('topupReference').value
+                reference: document.getElementById('topupReference').value || null,
+                transaction_type: 'topup'
             };
 
             try {
-                // const response = await fetch(`${API_URL}/transactions/topup`, {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify(topUpData)
-                // });
+                const response = await authenticatedFetch(`${API_URL}/transactions`, {
+                    method: 'POST',
+                    body: JSON.stringify(topUpData)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Top-up failed');
+                }
 
                 showNotification(`✅ Top-up successful! Added UGX ${topUpData.amount.toLocaleString()} to card.`, 'success');
 
@@ -687,7 +799,7 @@
                 document.getElementById('topupReference').value = '';
                 document.getElementById('topupSummary').style.display = 'none';
 
-                // Print receipt (mock)
+                // Print receipt option
                 setTimeout(() => {
                     if (confirm('Print receipt?')) {
                         window.print();
@@ -696,7 +808,10 @@
 
             } catch (error) {
                 console.error('Error processing top-up:', error);
-                showNotification('Error processing top-up', 'error');
+                showNotification(error.message || 'Error processing top-up', 'error');
+            } finally {
+                topupBtn.disabled = false;
+                topupBtn.innerHTML = originalText;
             }
         }
 
@@ -704,77 +819,106 @@
         async function issueCard(event) {
             event.preventDefault();
 
-            const cardData = {
-                card_uid: document.getElementById('issueCardUid').value,
-                customer_name: document.getElementById('issueCustomerName').value,
-                phone: document.getElementById('issuePhone').value,
-                email: document.getElementById('issueEmail').value,
-                initial_balance: parseInt(document.getElementById('issueInitialBalance').value) || 0,
-                payment_method: document.getElementById('issuePaymentMethod').value
+            const issueBtn = document.getElementById('issueBtn');
+            const originalText = issueBtn.innerHTML;
+
+            issueBtn.disabled = true;
+            issueBtn.innerHTML = '<div class="loading"></div>';
+
+            const initialBalance = parseInt(document.getElementById('issueInitialBalance').value) || 0;
+
+            // First create customer
+            const customerData = {
+                name: document.getElementById('issueCustomerName').value.trim(),
+                phone: document.getElementById('issuePhone').value.trim(),
+                email: document.getElementById('issueEmail').value.trim() || null
             };
 
             try {
-                // const response = await fetch(`${API_URL}/cards/issue`, {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify(cardData)
-                // });
+                // Create customer
+                const customerResponse = await authenticatedFetch(`${API_URL}/customers`, {
+                    method: 'POST',
+                    body: JSON.stringify(customerData)
+                });
 
-                showNotification(`✅ Card issued successfully to ${cardData.customer_name}!`, 'success');
+                const customerResult = await customerResponse.json();
+
+                if (!customerResponse.ok) {
+                    throw new Error(customerResult.error || 'Failed to create customer');
+                }
+
+                const customerId = customerResult.data.id;
+
+                // Issue card
+                const cardData = {
+                    uid: document.getElementById('issueCardUid').value.trim(),
+                    customer_id: customerId,
+                    balance: initialBalance,
+                    status: 'active'
+                };
+
+                const cardResponse = await authenticatedFetch(`${API_URL}/cards`, {
+                    method: 'POST',
+                    body: JSON.stringify(cardData)
+                });
+
+                const cardResult = await cardResponse.json();
+
+                if (!cardResponse.ok) {
+                    throw new Error(cardResult.error || 'Failed to issue card');
+                }
+
+                // If initial balance, create transaction
+                if (initialBalance > 0) {
+                    const paymentMethod = document.getElementById('issuePaymentMethod').value;
+                    if (paymentMethod) {
+                        const transactionData = {
+                            card_uid: cardData.uid,
+                            amount: initialBalance,
+                            payment_method: paymentMethod,
+                            transaction_type: 'topup'
+                        };
+
+                        await authenticatedFetch(`${API_URL}/transactions`, {
+                            method: 'POST',
+                            body: JSON.stringify(transactionData)
+                        });
+                    }
+                }
+
+                showNotification(`✅ Card issued successfully to ${customerData.name}!`, 'success');
 
                 // Reset form
                 document.getElementById('issueForm').reset();
 
             } catch (error) {
                 console.error('Error issuing card:', error);
-                showNotification('Error issuing card', 'error');
+                showNotification(error.message || 'Error issuing card', 'error');
+            } finally {
+                issueBtn.disabled = false;
+                issueBtn.innerHTML = originalText;
             }
         }
 
         // Load Reports
         async function loadReports() {
             try {
-                // const response = await fetch(`${API_URL}/transactions?today=true`);
-                // transactions = await response.json();
+                const today = new Date().toISOString().split('T')[0];
+                const response = await authenticatedFetch(`${API_URL}/transactions?date=${today}`);
+                const data = await response.json();
 
-                // Mock data for demonstration
-                transactions = [
-                    {
-                        id: '1',
-                        type: 'topup',
-                        customer_name: 'Alice Johnson',
-                        card_uid: '04:A1:B2:C3',
-                        amount: 50000,
-                        payment_method: 'cash',
-                        status: 'completed',
-                        created_at: new Date().toISOString()
-                    },
-                    {
-                        id: '2',
-                        type: 'topup',
-                        customer_name: 'Bob Smith',
-                        card_uid: '04:D4:E5:F6',
-                        amount: 30000,
-                        payment_method: 'mtn',
-                        status: 'completed',
-                        created_at: new Date(Date.now() - 3600000).toISOString()
-                    },
-                    {
-                        id: '3',
-                        type: 'issue',
-                        customer_name: 'Carol White',
-                        card_uid: '04:G7:H8:I9',
-                        amount: 100000,
-                        payment_method: 'cash',
-                        status: 'completed',
-                        created_at: new Date(Date.now() - 7200000).toISOString()
-                    }
-                ];
-
-                displayReports();
-                updateReportStats();
+                if (data.data) {
+                    transactions = data.data;
+                    displayReports();
+                    updateReportStats();
+                } else {
+                    transactions = [];
+                    displayReports();
+                    updateReportStats();
+                }
             } catch (error) {
                 console.error('Error loading reports:', error);
+                showNotification('Error loading reports', 'error');
             }
         }
 
@@ -788,27 +932,27 @@
 
             tbody.innerHTML = transactions.map(txn => {
                 const time = new Date(txn.created_at).toLocaleTimeString();
-                const typeLabel = txn.type === 'topup' ? 'Top-Up' : 'Card Issue';
-                const typeBadge = txn.type === 'topup' ? 'badge-info' : 'badge-warning';
+                const typeLabel = txn.transaction_type === 'topup' ? 'Top-Up' : txn.transaction_type === 'purchase' ? 'Purchase' : 'Other';
+                const typeBadge = txn.transaction_type === 'topup' ? 'badge-info' : 'badge-warning';
 
                 return `
                     <tr>
                         <td>${time}</td>
                         <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
-                        <td>${txn.customer_name}</td>
-                        <td style="font-family: monospace;">${txn.card_uid}</td>
-                        <td style="font-weight: 600; color: #059669;">UGX ${txn.amount.toLocaleString()}</td>
-                        <td style="text-transform: uppercase;">${txn.payment_method}</td>
-                        <td><span class="badge badge-success">${txn.status}</span></td>
+                        <td>${txn.customer?.name || 'N/A'}</td>
+                        <td style="font-family: monospace;">${txn.card_uid || 'N/A'}</td>
+                        <td style="font-weight: 600; color: #059669;">UGX ${(txn.amount || 0).toLocaleString()}</td>
+                        <td style="text-transform: uppercase;">${txn.payment_method || 'N/A'}</td>
+                        <td><span class="badge badge-success">${txn.status || 'completed'}</span></td>
                     </tr>
                 `;
             }).join('');
         }
 
         function updateReportStats() {
-            const totalSales = transactions.reduce((sum, txn) => sum + txn.amount, 0);
-            const cardsIssued = transactions.filter(txn => txn.type === 'issue').length;
-            const uniqueCustomers = new Set(transactions.map(txn => txn.customer_name)).size;
+            const totalSales = transactions.reduce((sum, txn) => sum + (txn.amount || 0), 0);
+            const cardsIssued = transactions.filter(txn => txn.transaction_type === 'issue' || txn.transaction_type === 'topup').length;
+            const uniqueCustomers = new Set(transactions.map(txn => txn.customer?.id).filter(id => id)).size;
 
             document.getElementById('reportTotalSales').textContent = `UGX ${totalSales.toLocaleString()}`;
             document.getElementById('reportTransactionCount').textContent = transactions.length;
@@ -821,10 +965,13 @@
             showNotification('Reports refreshed!', 'success');
         }
 
-        // Load customer info on page load for demo
+        // Initialize page
         window.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('topupCustomerName').value = 'Alice Johnson';
-            document.getElementById('topupCurrentBalance').value = 'UGX 45,000';
+            const token = checkAuth();
+            if (token) {
+                loadUserInfo();
+                loadBranchInfo();
+            }
         });
     </script>
 </body>
