@@ -2186,7 +2186,7 @@ function checkAuthentication() {
                 if (search) url += `search=${encodeURIComponent(search)}&`;
                 if (status) url += `status=${status}`;
 
-                const response = await fetch(url);
+                const response = await authenticatedFetch(url);
                 const data = await response.json();
                 customers = data.data || [];
 
@@ -2370,7 +2370,7 @@ function checkAuthentication() {
                 if (search) url += `search=${encodeURIComponent(search)}&`;
                 if (status) url += `status=${status}`;
 
-                const response = await fetch(url);
+                const response = await authenticatedFetch(url);
                 const data = await response.json();
                 cards = data.data || [];
 
@@ -2609,7 +2609,7 @@ function checkAuthentication() {
                 if (dateFrom) url += `date_from=${dateFrom}&`;
                 if (dateTo) url += `date_to=${dateTo}`;
 
-                const response = await fetch(url);
+                const response = await authenticatedFetch(url);
                 const data = await response.json();
                 transactions = data.data || [];
 
@@ -2776,10 +2776,10 @@ Balance After: UGX ${parseFloat(txn.balance_after || 0).toLocaleString()}
 
                 // Fetch all data in parallel
                 const [txnResponse, customersResponse, cardsResponse, branchesResponse] = await Promise.all([
-                    fetch(`${API_URL}/transactions`),
-                    fetch(`${API_URL}/customers`),
-                    fetch(`${API_URL}/cards`),
-                    fetch(`${API_URL}/branches`)
+                    authenticatedFetch(`${API_URL}/transactions`),
+                    authenticatedFetch(`${API_URL}/customers`),
+                    authenticatedFetch(`${API_URL}/cards`),
+                    authenticatedFetch(`${API_URL}/branches`)
                 ]);
 
                 reportsData.transactions = (await txnResponse.json()).data || [];
