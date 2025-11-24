@@ -905,6 +905,13 @@
                 <span>Mobile App Info</span>
             </div>
         </div>
+
+        <div class="nav-section" style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+            <div class="nav-item" onclick="logout()" style="color: #ef4444; font-weight: 600;">
+                <span class="nav-icon">🚪</span>
+                <span>Logout</span>
+            </div>
+        </div>
     </aside>
 
     <!-- Main Content -->
@@ -1911,7 +1918,7 @@ async function login(email, password, remember = true) {
 // Logout function
 function logout() {
     clearAuthToken();
-    window.location.href = '/admin/login';
+    window.location.href = '/login';
 }
 
 // Check authentication on page load
