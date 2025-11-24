@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Kiaan - Mobile Wallet</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow-x: hidden; }
+        .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background: white; position: relative; }
+        .screen { display: none; min-height: 100vh; padding: 20px; }
+        .screen.active { display: block; }
+        .welcome-screen { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 60px 30px; }
+        .app-logo { font-size: 80px; margin-bottom: 20px; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .welcome-screen h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .welcome-screen p { font-size: 1.1em; opacity: 0.9; margin-bottom: 50px; }
+        .feature-list { text-align: left; margin: 40px 0; }
+        .feature-item { display: flex; align-items: center; margin: 20px 0; background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 12px; }
+        .feature-item .icon { font-size: 30px; margin-right: 15px; }
+        .feature-item div { flex: 1; }
+        .feature-item h3 { margin-bottom: 5px; }
+        .feature-item p { font-size: 0.9em; opacity: 0.8; }
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        .btn-secondary { background: #f3f4f6; color: #374151; margin-top: 15px; }
+        .btn-secondary:hover { background: #e5e7eb; }
+        .login-screen, .otp-screen { padding-top: 80px; }
+        .login-header { text-align: center; margin-bottom: 50px; }
+        .login-header .icon { font-size: 60px; margin-bottom: 20px; }
+        .login-header h2 { color: #1f2937; margin-bottom: 10px; }
+        .login-header p { color: #6b7280; }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; color: #374151; font-weight: 500; margin-bottom: 8px; }
+        .form-group input { width: 100%; padding: 15px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 16px; transition: all 0.3s; }
+        .form-group input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .otp-inputs { display: flex; justify-content: space-between; margin: 30px 0; }
+        .otp-input { width: 50px; height: 60px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid #e5e7eb; border-radius: 12px; }
+        .otp-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .resend-timer { text-align: center; color: #6b7280; margin: 20px 0; }
+        .resend-link { color: #667eea; font-weight: 600; cursor: pointer; }
+        .dashboard-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; border-radius: 0 0 30px 30px; margin: -20px -20px 30px -20px; }
+        .user-greeting h2 { font-size: 1.5em; margin-bottom: 5px; }
+        .user-greeting p { opacity: 0.9; }
+        .balance-card { background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 25px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.3); margin-top: 20px; }
+        .balance-label { opacity: 0.9; margin-bottom: 8px; font-size: 0.9em; }
+        .balance-amount { font-size: 2.5em; font-weight: bold; margin-bottom: 15px; }
+        .balance-actions { display: flex; gap: 10px; }
+        .balance-actions button { flex: 1; padding: 12px; background: white; color: #667eea; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; }
+        .quick-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 30px 0; }
+        .quick-action { background: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); cursor: pointer; transition: all 0.3s; }
+        .quick-action:hover { transform: translateY(-5px); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1); }
+        .quick-action .icon { font-size: 30px; margin-bottom: 10px; }
+        .quick-action .label { font-size: 0.85em; color: #6b7280; }
+        .section-title { font-size: 1.2em; font-weight: bold; color: #1f2937; margin: 30px 0 15px; }
+        .transaction-list { background: white; border-radius: 16px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
+        .transaction-item { padding: 15px 20px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; }
+        .transaction-item:last-child { border-bottom: none; }
+        .transaction-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 15px; }
+        .transaction-icon.purchase { background: #fee2e2; color: #dc2626; }
+        .transaction-icon.topup { background: #dcfce7; color: #16a34a; }
+        .transaction-info { flex: 1; }
+        .transaction-title { font-weight: 600; color: #1f2937; margin-bottom: 3px; }
+        .transaction-date { font-size: 0.85em; color: #9ca3af; }
+        .transaction-amount { font-weight: bold; }
+        .transaction-amount.debit { color: #dc2626; }
+        .transaction-amount.credit { color: #16a34a; }
+        .nfc-scan-screen { padding-top: 40px; }
+        .nfc-scanner { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 40px; border-radius: 20px; text-align: center; margin: 30px 0; }
+        .nfc-animation { width: 150px; height: 150px; margin: 0 auto 30px; position: relative; }
+        .nfc-pulse { width: 100%; height: 100%; border-radius: 50%; background: rgba(255, 255, 255, 0.2); position: absolute; animation: pulse 2s infinite; }
+        .nfc-pulse:nth-child(2) { animation-delay: 0.5s; }
+        .nfc-pulse:nth-child(3) { animation-delay: 1s; }
+        @keyframes pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+        .nfc-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; }
+        .nfc-scanner h3 { font-size: 1.5em; margin-bottom: 10px; }
+        .nfc-scanner p { opacity: 0.9; }
+        .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); max-width: 480px; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1); border-radius: 20px 20px 0 0; }
+        .nav-item { flex: 1; text-align: center; padding: 10px; cursor: pointer; transition: all 0.3s; }
+        .nav-item .icon { font-size: 24px; color: #9ca3af; margin-bottom: 5px; }
+        .nav-item .label { font-size: 0.75em; color: #6b7280; }
+        .nav-item.active .icon, .nav-item.active .label { color: #667eea; }
+        .profile-header { text-align: center; padding: 40px 0; }
+        .profile-avatar { width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 40px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+        .profile-name { font-size: 1.5em; font-weight: bold; color: #1f2937; margin-bottom: 5px; }
+        .profile-phone { color: #6b7280; }
+        .profile-menu { margin-top: 30px; }
+        .menu-item { background: white; padding: 18px 20px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; cursor: pointer; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
+        .menu-item .icon { font-size: 24px; margin-right: 15px; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .menu-item .text { flex: 1; }
+        .menu-item .title { font-weight: 600; color: #1f2937; margin-bottom: 3px; }
+        .menu-item .subtitle { font-size: 0.85em; color: #9ca3af; }
+        .menu-item .arrow { color: #9ca3af; font-size: 20px; }
+        .logout-btn { background: #fee2e2; color: #dc2626; }
+        .logout-btn .icon { background: #fecaca; color: #dc2626; }
+        .divider { text-align: center; margin: 30px 0; position: relative; }
+        .divider::before { content: ''; position: absolute; left: 0; top: 50%; width: 100%; height: 1px; background: #e5e7eb; }
+        .divider span { background: white; padding: 0 15px; position: relative; color: #9ca3af; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div id="welcomeScreen" class="screen active welcome-screen">
+            <div class="app-logo">💳</div>
+            <h1>Kiaan Wallet</h1>
+            <p>Your NFC-powered mobile wallet</p>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="icon">📱</div>
+                    <div>
+                        <h3>NFC Payments</h3>
+                        <p>Tap your card to pay anywhere</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon">💰</div>
+                    <div>
+                        <h3>Check Balance</h3>
+                        <p>View balance and transaction history</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon">🔒</div>
+                    <div>
+                        <h3>Secure Access</h3>
+                        <p>Biometric & OTP authentication</p>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="showScreen('loginScreen')">Get Started</button>
+        </div>
+
+        <div id="loginScreen" class="screen login-screen">
+            <div class="login-header">
+                <div class="icon">📱</div>
+                <h2>Welcome Back</h2>
+                <p>Enter your phone number to continue</p>
+            </div>
+            <form onsubmit="sendOTP(event)">
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="phoneNumber" placeholder="+256 700 000 000" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Send OTP</button>
+            </form>
+            <div class="divider"><span>OR</span></div>
+            <button class="btn btn-secondary" onclick="showBiometric()">🔐 Login with Biometric</button>
+            <button class="btn btn-secondary" onclick="showScreen('welcomeScreen')" style="margin-top: 30px;">← Back</button>
+        </div>
+
+        <div id="otpScreen" class="screen otp-screen">
+            <div class="login-header">
+                <div class="icon">🔐</div>
+                <h2>Enter OTP</h2>
+                <p>We sent a code to <span id="otpPhoneDisplay"></span></p>
+            </div>
+            <form onsubmit="verifyOTP(event)">
+                <div class="otp-inputs">
+                    <input type="text" class="otp-input" maxlength="1" id="otp1" oninput="moveToNext(this, 'otp2')">
+                    <input type="text" class="otp-input" maxlength="1" id="otp2" oninput="moveToNext(this, 'otp3')">
+                    <input type="text" class="otp-input" maxlength="1" id="otp3" oninput="moveToNext(this, 'otp4')">
+                    <input type="text" class="otp-input" maxlength="1" id="otp4" oninput="moveToNext(this, 'otp5')">
+                    <input type="text" class="otp-input" maxlength="1" id="otp5" oninput="moveToNext(this, 'otp6')">
+                    <input type="text" class="otp-input" maxlength="1" id="otp6">
+                </div>
+                <div class="resend-timer">Didn't receive code? <span class="resend-link" onclick="resendOTP()">Resend OTP</span></div>
+                <button type="submit" class="btn btn-primary">Verify & Continue</button>
+                <button type="button" class="btn btn-secondary" onclick="showScreen('loginScreen')">← Change Number</button>
+            </form>
+        </div>
+
+        <div id="dashboardScreen" class="screen">
+            <div class="dashboard-header">
+                <div class="user-greeting">
+                    <h2>Hello, <span id="userName">User</span></h2>
+                    <p>Welcome to your wallet</p>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-label">Available Balance</div>
+                    <div class="balance-amount" id="userBalance">UGX 0</div>
+                    <div class="balance-actions">
+                        <button onclick="showScreen('nfcScanScreen')">📱 Tap Card</button>
+                        <button onclick="loadTransactionHistory()">📊 History</button>
+                    </div>
+                </div>
+            </div>
+            <div class="quick-actions">
+                <div class="quick-action" onclick="showScreen('nfcScanScreen')">
+                    <div class="icon">📳</div>
+                    <div class="label">Scan Card</div>
+                </div>
+                <div class="quick-action" onclick="loadTransactionHistory()">
+                    <div class="icon">📜</div>
+                    <div class="label">History</div>
+                </div>
+                <div class="quick-action" onclick="showScreen('profileScreen')">
+                    <div class="icon">👤</div>
+                    <div class="label">Profile</div>
+                </div>
+            </div>
+            <div class="section-title">Recent Transactions</div>
+            <div class="transaction-list" id="transactionList"></div>
+        </div>
+
+        <div id="nfcScanScreen" class="screen nfc-scan-screen">
+            <h2 style="text-align: center; margin-bottom: 20px;">Scan Your Card</h2>
+            <div class="nfc-scanner">
+                <div class="nfc-animation">
+                    <div class="nfc-pulse"></div>
+                    <div class="nfc-pulse"></div>
+                    <div class="nfc-pulse"></div>
+                    <div class="nfc-icon">📳</div>
+                </div>
+                <h3>Hold Card Near Device</h3>
+                <p>Place your NFC card near the back of your phone</p>
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="color: #6b7280; margin-bottom: 20px;">Or enter card number manually</p>
+                <input type="text" id="manualCardUid" placeholder="Enter card UID" style="width: 100%; padding: 15px; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center;">
+                <button class="btn btn-primary" style="margin-top: 15px;" onclick="checkCardBalance()">Check Balance</button>
+            </div>
+            <button class="btn btn-secondary" onclick="showScreen('dashboardScreen')" style="margin-top: 30px;">← Back to Dashboard</button>
+        </div>
+
+        <div id="profileScreen" class="screen">
+            <div class="profile-header">
+                <div class="profile-avatar">👤</div>
+                <div class="profile-name" id="profileName">User Name</div>
+                <div class="profile-phone" id="profilePhone">+256 700 000 000</div>
+            </div>
+            <div class="profile-menu">
+                <div class="menu-item">
+                    <div class="icon" style="background: #dbeafe; color: #2563eb;">👤</div>
+                    <div class="text">
+                        <div class="title">Edit Profile</div>
+                        <div class="subtitle">Update your personal information</div>
+                    </div>
+                    <div class="arrow">›</div>
+                </div>
+                <div class="menu-item">
+                    <div class="icon" style="background: #fef3c7; color: #d97706;">💳</div>
+                    <div class="text">
+                        <div class="title">My Cards</div>
+                        <div class="subtitle">View and manage your NFC cards</div>
+                    </div>
+                    <div class="arrow">›</div>
+                </div>
+                <div class="menu-item">
+                    <div class="icon" style="background: #ddd6fe; color: #7c3aed;">🔒</div>
+                    <div class="text">
+                        <div class="title">Security</div>
+                        <div class="subtitle">Biometric & PIN settings</div>
+                    </div>
+                    <div class="arrow">›</div>
+                </div>
+                <div class="menu-item logout-btn" onclick="logout()">
+                    <div class="icon">🚪</div>
+                    <div class="text">
+                        <div class="title">Logout</div>
+                        <div class="subtitle">Sign out of your account</div>
+                    </div>
+                    <div class="arrow">›</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-nav" id="bottomNav" style="display: none;">
+            <div class="nav-item active" onclick="navigateTo('dashboardScreen', this)">
+                <div class="icon">🏠</div>
+                <div class="label">Home</div>
+            </div>
+            <div class="nav-item" onclick="navigateTo('nfcScanScreen', this)">
+                <div class="icon">📳</div>
+                <div class="label">Scan</div>
+            </div>
+            <div class="nav-item" onclick="loadTransactionHistory(); navigateTo('dashboardScreen', this)">
+                <div class="icon">📊</div>
+                <div class="label">History</div>
+            </div>
+            <div class="nav-item" onclick="navigateTo('profileScreen', this)">
+                <div class="icon">👤</div>
+                <div class="label">Profile</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://kiaan.alexandratechlab.com/api';
+        let currentUser = null;
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            const showNav = ['dashboardScreen', 'nfcScanScreen', 'profileScreen'].includes(screenId);
+            document.getElementById('bottomNav').style.display = showNav ? 'flex' : 'none';
+        }
+
+        function navigateTo(screenId, navItem) {
+            showScreen(screenId);
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            navItem.classList.add('active');
+        }
+
+        async function sendOTP(event) {
+            event.preventDefault();
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            document.getElementById('otpPhoneDisplay').textContent = phoneNumber;
+            showScreen('otpScreen');
+            document.getElementById('otp1').focus();
+            console.log('OTP sent to:', phoneNumber);
+        }
+
+        function moveToNext(current, nextId) {
+            if (current.value.length === 1 && nextId) {
+                document.getElementById(nextId).focus();
+            }
+        }
+
+        async function verifyOTP(event) {
+            event.preventDefault();
+            const otp = ['otp1', 'otp2', 'otp3', 'otp4', 'otp5', 'otp6'].map(id => document.getElementById(id).value).join('');
+            if (otp.length === 6) {
+                currentUser = { name: 'John Doe', phone: document.getElementById('phoneNumber').value, balance: 125000, cardUid: '04:A1:B2:C3:D4:E5:F6' };
+                updateUserData();
+                showScreen('dashboardScreen');
+                loadRecentTransactions();
+            } else {
+                alert('Please enter a valid 6-digit OTP');
+            }
+        }
+
+        function resendOTP() {
+            alert(`OTP resent to ${document.getElementById('phoneNumber').value}`);
+        }
+
+        async function showBiometric() {
+            if (confirm('Touch sensor to authenticate')) {
+                currentUser = { name: 'John Doe', phone: '+256 700 000 000', balance: 125000, cardUid: '04:A1:B2:C3:D4:E5:F6' };
+                updateUserData();
+                showScreen('dashboardScreen');
+                loadRecentTransactions();
+            }
+        }
+
+        function updateUserData() {
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name;
+                document.getElementById('userBalance').textContent = `UGX ${currentUser.balance.toLocaleString()}`;
+                document.getElementById('profileName').textContent = currentUser.name;
+                document.getElementById('profilePhone').textContent = currentUser.phone;
+            }
+        }
+
+        async function checkCardBalance() {
+            const cardUid = document.getElementById('manualCardUid').value;
+            if (!cardUid) {
+                alert('Please enter a card UID');
+                return;
+            }
+            const mockBalance = 85000;
+            currentUser.balance = mockBalance;
+            document.getElementById('userBalance').textContent = `UGX ${mockBalance.toLocaleString()}`;
+            alert(`Card Balance: UGX ${mockBalance.toLocaleString()}`);
+            showScreen('dashboardScreen');
+        }
+
+        async function loadRecentTransactions() {
+            const transactionList = document.getElementById('transactionList');
+            const transactions = [
+                { id: 1, type: 'purchase', title: 'Cafeteria Purchase', date: '2 hours ago', amount: -5000, icon: '🛒' },
+                { id: 2, type: 'topup', title: 'Mobile Money Top-up', date: '1 day ago', amount: 50000, icon: '💰' },
+                { id: 3, type: 'purchase', title: 'Library Fee', date: '2 days ago', amount: -10000, icon: '📚' },
+                { id: 4, type: 'topup', title: 'Cash Top-up', date: '3 days ago', amount: 100000, icon: '💵' },
+                { id: 5, type: 'purchase', title: 'Transport Card', date: '4 days ago', amount: -15000, icon: '🚌' }
+            ];
+            transactionList.innerHTML = transactions.map(tx => `
+                <div class="transaction-item">
+                    <div class="transaction-icon ${tx.type}">${tx.icon}</div>
+                    <div class="transaction-info">
+                        <div class="transaction-title">${tx.title}</div>
+                        <div class="transaction-date">${tx.date}</div>
+                    </div>
+                    <div class="transaction-amount ${tx.amount > 0 ? 'credit' : 'debit'}">
+                        ${tx.amount > 0 ? '+' : ''}UGX ${Math.abs(tx.amount).toLocaleString()}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadTransactionHistory() {
+            loadRecentTransactions();
+            showScreen('dashboardScreen');
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                currentUser = null;
+                showScreen('welcomeScreen');
+            }
+        }
+
+        window.addEventListener('load', () => console.log('Kiaan Mobile Wallet loaded'));
+    </script>
+</body>
+</html>

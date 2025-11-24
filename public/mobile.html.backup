@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
+    <title>Kiaan POS Mobile App</title>
+    <link rel="manifest" href="/app/manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* App Container */
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 40px rgba(0,0,0,0.2);
+        }
+
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .app-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .app-header .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 75px;
+            z-index: 99;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px 10px;
+            text-align: center;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 14px;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .nav-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        /* Content Pages */
+        .page {
+            display: none;
+            padding: 20px;
+            min-height: calc(100vh - 150px);
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        /* Quick Amount Buttons */
+        .amount-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .amount-btn {
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            background: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .amount-btn:active, .amount-btn.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+            color: #667eea;
+        }
+
+        /* Balance Display */
+        .balance-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .balance-amount {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .balance-card-number {
+            font-size: 12px;
+            opacity: 0.8;
+            font-family: monospace;
+        }
+
+        /* Transaction List */
+        .transaction-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .transaction-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 20px;
+        }
+
+        .transaction-icon.purchase {
+            background: #fff0f0;
+            color: #ff4d4f;
+        }
+
+        .transaction-icon.topup {
+            background: #f0fff0;
+            color: #52c41a;
+        }
+
+        .transaction-details {
+            flex: 1;
+        }
+
+        .transaction-details strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .transaction-details small {
+            color: #999;
+            font-size: 13px;
+        }
+
+        .transaction-amount {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .transaction-amount.positive {
+            color: #52c41a;
+        }
+
+        .transaction-amount.negative {
+            color: #ff4d4f;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.active {
+            display: block;
+        }
+
+        .alert-success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+        }
+
+        .alert-error {
+            background: #fff1f0;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="app-header">
+            <h1>💳 Kiaan POS</h1>
+            <div class="subtitle">Mobile Point of Sale</div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('scan')">🔍 Scan</button>
+            <button class="nav-tab" onclick="switchTab('topup')">💰 Top-Up</button>
+            <button class="nav-tab" onclick="switchTab('history')">📊 History</button>
+        </div>
+
+        <!-- Scan/Purchase Page -->
+        <div class="page active" id="scan-page">
+            <div class="card">
+                <h3>🛒 Make Purchase</h3>
+                <div id="scan-alert" class="alert"></div>
+
+                <div class="form-group">
+                    <label>Card UID</label>
+                    <input type="text" class="form-control" id="scan-card-uid" placeholder="Enter or scan card UID">
+                    <small style="color: #999; display: block; margin-top: 5px;">Demo: 04EAB38956E78F</small>
+                </div>
+
+                <button class="btn btn-primary" onclick="loadCardBalance()">Check Balance</button>
+            </div>
+
+            <div id="balance-section" style="display: none;">
+                <div class="balance-card">
+                    <div class="balance-label">Available Balance</div>
+                    <div class="balance-amount" id="card-balance">UGX 0</div>
+                    <div class="balance-card-number" id="card-number">Card: ****</div>
+                </div>
+
+                <div class="card">
+                    <h3>Enter Amount</h3>
+
+                    <div class="amount-grid">
+                        <button class="amount-btn" onclick="selectAmount(5000)">UGX 5,000</button>
+                        <button class="amount-btn" onclick="selectAmount(10000)">UGX 10,000</button>
+                        <button class="amount-btn" onclick="selectAmount(20000)">UGX 20,000</button>
+                        <button class="amount-btn" onclick="selectAmount(50000)">UGX 50,000</button>
+                        <button class="amount-btn" onclick="selectAmount(100000)">UGX 100,000</button>
+                        <button class="amount-btn" onclick="selectAmount(200000)">UGX 200,000</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Custom Amount (UGX)</label>
+                        <input type="number" class="form-control" id="purchase-amount" placeholder="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>PIN (4 digits)</label>
+                        <input type="password" class="form-control" id="purchase-pin" placeholder="••••" maxlength="4">
+                        <small style="color: #999; display: block; margin-top: 5px;">Demo PIN: 1234</small>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="processPurchase()">Complete Purchase</button>
+                </div>
+            </div>
+
+            <div class="loading" id="scan-loading">
+                <div class="spinner"></div>
+                <p>Processing transaction...</p>
+            </div>
+        </div>
+
+        <!-- Top-Up Page -->
+        <div class="page" id="topup-page">
+            <div class="card">
+                <h3>💰 Top-Up Card</h3>
+                <div id="topup-alert" class="alert"></div>
+
+                <div class="form-group">
+                    <label>Card UID</label>
+                    <input type="text" class="form-control" id="topup-card-uid" placeholder="Enter card UID">
+                    <small style="color: #999; display: block; margin-top: 5px;">Demo: 04EAB38956E78F</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select class="form-control" id="payment-method">
+                        <option value="cash">💵 Cash</option>
+                        <option value="mtn">📱 MTN Mobile Money</option>
+                        <option value="airtel">📱 Airtel Money</option>
+                    </select>
+                </div>
+
+                <div class="amount-grid">
+                    <button class="amount-btn" onclick="selectTopupAmount(10000)">UGX 10,000</button>
+                    <button class="amount-btn" onclick="selectTopupAmount(20000)">UGX 20,000</button>
+                    <button class="amount-btn" onclick="selectTopupAmount(50000)">UGX 50,000</button>
+                    <button class="amount-btn" onclick="selectTopupAmount(100000)">UGX 100,000</button>
+                    <button class="amount-btn" onclick="selectTopupAmount(200000)">UGX 200,000</button>
+                    <button class="amount-btn" onclick="selectTopupAmount(500000)">UGX 500,000</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Custom Amount (UGX)</label>
+                    <input type="number" class="form-control" id="topup-amount" placeholder="0">
+                </div>
+
+                <button class="btn btn-success" onclick="processTopup()">Top-Up Card</button>
+            </div>
+
+            <div class="loading" id="topup-loading">
+                <div class="spinner"></div>
+                <p>Processing top-up...</p>
+            </div>
+        </div>
+
+        <!-- History Page -->
+        <div class="page" id="history-page">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Today's Sales</div>
+                    <div class="stat-value" id="today-sales">UGX 0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Transactions</div>
+                    <div class="stat-value" id="today-count">0</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📊 Recent Transactions</h3>
+                <div id="transaction-list">
+                    <div class="loading active">
+                        <div class="spinner"></div>
+                        <p>Loading transactions...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://kiaan.alexandratechlab.com/api';
+        let currentCard = null;
+
+        // Tab Switching
+        function switchTab(tab) {
+            // Update tabs
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tab + '-page').classList.add('active');
+
+            // Load data for specific tabs
+            if (tab === 'history') {
+                loadTransactions();
+            }
+        }
+
+        // Amount Selection
+        function selectAmount(amount) {
+            document.getElementById('purchase-amount').value = amount;
+            document.querySelectorAll('.amount-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+
+        function selectTopupAmount(amount) {
+            document.getElementById('topup-amount').value = amount;
+            document.querySelectorAll('.amount-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+
+        // Load Card Balance
+        async function loadCardBalance() {
+            const cardUid = document.getElementById('scan-card-uid').value.trim();
+            const alert = document.getElementById('scan-alert');
+
+            if (!cardUid) {
+                showAlert(alert, 'Please enter card UID', 'error');
+                return;
+            }
+
+            document.getElementById('scan-loading').classList.add('active');
+
+            try {
+                const response = await fetch(`${API_URL}/cards`);
+                const data = await response.json();
+
+                const card = data.data.find(c => c.card_uid.toLowerCase() === cardUid.toLowerCase());
+
+                if (card) {
+                    currentCard = card;
+                    document.getElementById('card-balance').textContent =
+                        `UGX ${parseFloat(card.balance).toLocaleString()}`;
+                    document.getElementById('card-number').textContent =
+                        `Card: ${card.card_uid}`;
+                    document.getElementById('balance-section').style.display = 'block';
+                    showAlert(alert, 'Card loaded successfully!', 'success');
+                } else {
+                    showAlert(alert, 'Card not found', 'error');
+                }
+            } catch (error) {
+                showAlert(alert, 'Error loading card: ' + error.message, 'error');
+            }
+
+            document.getElementById('scan-loading').classList.remove('active');
+        }
+
+        // Process Purchase
+        async function processPurchase() {
+            const amount = parseFloat(document.getElementById('purchase-amount').value);
+            const pin = document.getElementById('purchase-pin').value;
+            const alert = document.getElementById('scan-alert');
+
+            if (!currentCard) {
+                showAlert(alert, 'Please load a card first', 'error');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                showAlert(alert, 'Please enter a valid amount', 'error');
+                return;
+            }
+
+            if (pin !== '1234') {
+                showAlert(alert, 'Invalid PIN', 'error');
+                return;
+            }
+
+            if (amount > parseFloat(currentCard.balance)) {
+                showAlert(alert, 'Insufficient balance', 'error');
+                return;
+            }
+
+            document.getElementById('scan-loading').classList.add('active');
+
+            try {
+                const response = await fetch(`${API_URL}/transactions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        card_id: currentCard.id,
+                        transaction_type: 'purchase',
+                        amount: amount,
+                        description: 'Mobile POS Purchase'
+                    })
+                });
+
+                if (response.ok) {
+                    showAlert(alert, `✅ Purchase successful! Amount: UGX ${amount.toLocaleString()}`, 'success');
+                    document.getElementById('purchase-amount').value = '';
+                    document.getElementById('purchase-pin').value = '';
+                    // Reload balance
+                    setTimeout(() => loadCardBalance(), 1000);
+                } else {
+                    showAlert(alert, 'Transaction failed', 'error');
+                }
+            } catch (error) {
+                showAlert(alert, 'Error: ' + error.message, 'error');
+            }
+
+            document.getElementById('scan-loading').classList.remove('active');
+        }
+
+        // Process Top-Up
+        async function processTopup() {
+            const cardUid = document.getElementById('topup-card-uid').value.trim();
+            const amount = parseFloat(document.getElementById('topup-amount').value);
+            const paymentMethod = document.getElementById('payment-method').value;
+            const alert = document.getElementById('topup-alert');
+
+            if (!cardUid) {
+                showAlert(alert, 'Please enter card UID', 'error');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                showAlert(alert, 'Please enter a valid amount', 'error');
+                return;
+            }
+
+            document.getElementById('topup-loading').classList.add('active');
+
+            try {
+                // Find card
+                const cardsResponse = await fetch(`${API_URL}/cards`);
+                const cardsData = await cardsResponse.json();
+                const card = cardsData.data.find(c => c.card_uid.toLowerCase() === cardUid.toLowerCase());
+
+                if (!card) {
+                    showAlert(alert, 'Card not found', 'error');
+                    document.getElementById('topup-loading').classList.remove('active');
+                    return;
+                }
+
+                // Process top-up
+                const response = await fetch(`${API_URL}/transactions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        card_id: card.id,
+                        transaction_type: 'topup',
+                        amount: amount,
+                        description: `Top-up via ${paymentMethod.toUpperCase()}`
+                    })
+                });
+
+                if (response.ok) {
+                    showAlert(alert, `✅ Top-up successful! Added UGX ${amount.toLocaleString()}`, 'success');
+                    document.getElementById('topup-amount').value = '';
+                } else {
+                    showAlert(alert, 'Top-up failed', 'error');
+                }
+            } catch (error) {
+                showAlert(alert, 'Error: ' + error.message, 'error');
+            }
+
+            document.getElementById('topup-loading').classList.remove('active');
+        }
+
+        // Load Transactions
+        async function loadTransactions() {
+            const listElement = document.getElementById('transaction-list');
+
+            try {
+                const response = await fetch(`${API_URL}/transactions`);
+                const data = await response.json();
+
+                const transactions = data.data.slice(0, 20); // Last 20 transactions
+
+                // Calculate today's stats
+                const today = new Date().toISOString().split('T')[0];
+                const todayTransactions = transactions.filter(t =>
+                    t.created_at.startsWith(today)
+                );
+
+                const todaySales = todayTransactions
+                    .filter(t => t.transaction_type === 'purchase')
+                    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+                document.getElementById('today-sales').textContent =
+                    `UGX ${todaySales.toLocaleString()}`;
+                document.getElementById('today-count').textContent = todayTransactions.length;
+
+                // Render transactions
+                let html = '';
+                transactions.forEach(t => {
+                    const isPurchase = t.transaction_type === 'purchase';
+                    const icon = isPurchase ? '🛒' : '💰';
+                    const iconClass = isPurchase ? 'purchase' : 'topup';
+                    const amountClass = isPurchase ? 'negative' : 'positive';
+                    const sign = isPurchase ? '-' : '+';
+                    const date = new Date(t.created_at);
+
+                    html += `
+                        <div class="transaction-item">
+                            <div class="transaction-icon ${iconClass}">${icon}</div>
+                            <div class="transaction-details">
+                                <strong>${t.transaction_type.toUpperCase()}</strong>
+                                <small>${date.toLocaleString()}</small>
+                            </div>
+                            <div class="transaction-amount ${amountClass}">
+                                ${sign}UGX ${parseFloat(t.amount).toLocaleString()}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listElement.innerHTML = html || '<p style="text-align: center; color: #999; padding: 20px;">No transactions found</p>';
+
+            } catch (error) {
+                listElement.innerHTML = `<p style="text-align: center; color: #ff4d4f; padding: 20px;">Error loading transactions</p>`;
+            }
+        }
+
+        // Show Alert
+        function showAlert(element, message, type) {
+            element.textContent = message;
+            element.className = `alert active alert-${type}`;
+            setTimeout(() => element.classList.remove('active'), 5000);
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Kiaan POS Mobile App initialized');
+        });
+    </script>
+</body>
+</html>
